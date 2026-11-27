@@ -30,14 +30,15 @@ Colour sorting is a common genre with no single owner. We keep our own identity:
 - Levels are generated from a **seed** (level number), so level 37 is the same for everyone and never needs downloading.
 - Generate by **scrambling a solved state** with random legal reverse-pours, then run a **solver** (breadth-first / A* with state hashing) to confirm it is solvable and to measure difficulty (minimum moves).
 - Reject levels that are too easy or have trivial starting moves; keep a target move range per difficulty tier.
-- A fixed, hand-checked first 20 levels to teach the game gently.
+- Early levels ramp quickly (players found 2–4 colours too easy); no starting board has a run of 3 on top.
 
 ### Difficulty curve
 | Levels | Colours | Tube height | Spare empty tubes | Twist |
 |---|---|---|---|---|
-| 1–10 | 2–4 | 4 | 2 | Tutorial |
-| 11–50 | 5–7 | 4 | 2 | — |
-| 51–100 | 7–9 | 4 | 2 | Hidden layers (some levels) |
+| 1–10 | 3–6 | 4 | 2 | Quick warm-up |
+| 11–30 | 7 | 4 | 2 | — |
+| 31–60 | 8 | 4 | 2 | Hidden layers from 51 (some levels) |
+| 61–100 | 9 | 4 | 2 | Hidden layers (some levels) |
 | 101–200 | 9–11 | 4–5 | 1–2 | Hidden layers |
 | 201+ | 10–12 | 5–6 | 1–2 | Mixed twists |
 

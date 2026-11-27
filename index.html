@@ -234,9 +234,10 @@ function shuffle(arr, rnd) {
 
 // Difficulty curve from DESIGN.md
 function levelParams(n) {
-  if (n <= 10) return { colors: [2, 2, 3, 3, 3, 4, 4, 4, 4, 4][n - 1], height: 4, spares: 2 };
-  if (n <= 50) return { colors: 5 + Math.floor((n - 11) / 14), height: 4, spares: 2 };
-  if (n <= 100) return { colors: 7 + Math.floor((n - 51) / 20), height: 4, spares: 2 };
+  if (n <= 10) return { colors: [3, 4, 5, 5, 5, 6, 6, 6, 6, 6][n - 1], height: 4, spares: 2 };
+  if (n <= 30) return { colors: 7, height: 4, spares: 2 };
+  if (n <= 60) return { colors: 8, height: 4, spares: 2 };
+  if (n <= 100) return { colors: 9, height: 4, spares: 2 };
   if (n <= 200) return { colors: 9 + Math.floor((n - 101) / 40), height: n % 3 === 0 ? 5 : 4, spares: 2 };
   const r = mulberry32(n * 7919);
   return { colors: 10 + Math.floor(r() * 3), height: 4 + Math.floor(r() * 3), spares: 2 };
@@ -302,6 +303,7 @@ function solve(tubes, H, budget = 60000) {
   return null;
 }
 
+const GEN_VERSION = 2;      // bump when level generation changes
 const levelCache = new Map();
 function makeLevel(n) {
   if (levelCache.has(n)) return levelCache.get(n);
@@ -317,12 +319,12 @@ function makeLevel(n) {
     for (let t = 0; t < colors; t++) tubes.push(units.slice(t * H, t * H + H));
     // Reject boards that start with a finished tube or a run of 3+ on top (too easy).
     if (tubes.some(t => t.every(x => x === t[0]))) continue;
-    if (n > 10 && tubes.some(t => t[H - 1] === t[H - 2] && t[H - 2] === t[H - 3])) continue;
+    if (n > 1 && tubes.some(t => t[H - 1] === t[H - 2] && t[H - 2] === t[H - 3])) continue;
     for (let s = 0; s < spares; s++) tubes.push([]);
     const strs = tubes.map(t => t.map(x => String.fromCharCode(97 + x)).join(''));
     const sol = solve(strs, H);
     if (!sol) continue;
-    if (n > 3 && sol.length < colors + 2) continue; // too short to be interesting
+    if (n > 1 && sol.length < Math.round(colors * 1.8)) continue; // too short to be interesting
     const level = { n, H, tubes: tubes.map(t => t.map(x => pick[x])), par: sol.length, solution: sol };
     levelCache.set(n, level);
     return level;
@@ -415,7 +417,7 @@ function loadLevel(n, resume) {
   L = makeLevel(n);
   H = L.H;
   const saved = resume ? store.get('tt.current', null) : null;
-  if (saved && saved.n === n && saved.tubes && saved.tubes.length >= L.tubes.length) {
+  if (saved && saved.n === n && saved.gen === GEN_VERSION && saved.tubes && saved.tubes.length >= L.tubes.length) {
     tubes = saved.tubes; history = saved.history || []; moves = saved.moves || 0; undos = saved.undos ?? UNDOS_PER_LEVEL;
   } else {
     tubes = L.tubes.map(t => t.slice()); history = []; moves = 0; undos = UNDOS_PER_LEVEL;
@@ -428,7 +430,7 @@ function loadLevel(n, resume) {
   // Warm the cache for the next level while the player thinks.
   setTimeout(() => { try { makeLevel(n + 1); } catch {} }, 400);
 }
-function saveCurrent() { store.set('tt.current', { n: L.n, tubes, history, moves, undos }); }
+function saveCurrent() { store.set('tt.current', { n: L.n, gen: GEN_VERSION, tubes, history, moves, undos }); }
 
 const top = t => t[t.length - 1];
 const isUniform = t => t.every(x => x === t[0]);
