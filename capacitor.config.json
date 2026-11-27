@@ -1,0 +1,9 @@
+{
+  "appId": "com.aiconnector99.tubetonic",
+  "appName": "Tube Tonic",
+  "webDir": "www",
+  "backgroundColor": "#f6f1e4",
+  "android": {
+    "backgroundColor": "#f6f1e4"
+  }
+}

@@ -24,4 +24,28 @@ empty tube, if there is room. Fill every tube with a single color to win.
 - Progress and the level in play are saved on the device
 - Pour animation, sounds, vibration, color-blind symbols, quick-pour, light and dark mode
 
-**Next:** Android build (v0.3), then Daily Tonic, Zen, hints and extra tubes (v0.4), then the shop (v0.5).
+**v0.3 — Android app**
+- Capacitor 8 wrapper with app icon, splash screen and portrait lock
+- GitHub Actions builds a test APK on every push
+
+**Next:** Daily Tonic, Zen, hints and extra tubes (v0.4), then the shop (v0.5).
+
+## Getting the Android app
+
+1. Open the repository's **Actions** tab and pick **Build Android app**.
+2. Open the newest run with a green check.
+3. Under **Artifacts**, download **tube-tonic-debug-apk** and unzip it.
+4. Open the `.apk` on your phone. Allow installs from this source if Android asks, and tap
+   **Install anyway** if Play Protect warns about an unknown app.
+
+## Building locally (optional)
+
+Needs Node 22+, JDK 21 and the Android SDK.
+
+```sh
+npm install
+npm run android          # creates android/ with icons, splash and portrait lock
+cd android && ./gradlew assembleDebug
+```
+
+`android/` and `www/` are generated and not committed. Icons and splash screens come from `assets/`.

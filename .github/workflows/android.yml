@@ -1,0 +1,100 @@
+name: Build Android app
+
+on:
+  push:
+    branches: ["**"]
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      release:
+        description: "Also build a signed release AAB for the Play Store"
+        type: boolean
+        default: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Install packages
+        run: npm ci --no-audit --no-fund
+
+      - name: Work out version
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            echo "VERSION_NAME=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
+          else
+            echo "VERSION_NAME=$(node -p "require('./package.json').version")" >> "$GITHUB_ENV"
+          fi
+          # Play Store needs a higher versionCode for every upload.
+          echo "VERSION_CODE=${{ github.run_number }}" >> "$GITHUB_ENV"
+
+      - name: Decide whether to build a release
+        id: rel
+        env:
+          HAS_KEY: ${{ secrets.KEYSTORE_BASE64 != '' }}
+        run: |
+          want=false
+          if [[ "$GITHUB_REF" == refs/tags/v* ]] || [[ "${{ inputs.release }}" == "true" ]]; then want=true; fi
+          if [[ "$want" == "true" && "$HAS_KEY" != "true" ]]; then
+            echo "::error::A release build needs the KEYSTORE_BASE64, KEYSTORE_PASSWORD, KEY_ALIAS and KEY_PASSWORD secrets. See README."
+            exit 1
+          fi
+          echo "release=$want" >> "$GITHUB_OUTPUT"
+
+      - name: Restore the release keystore
+        if: steps.rel.outputs.release == 'true'
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > "$RUNNER_TEMP/release.keystore"
+          echo "KEYSTORE_PATH=$RUNNER_TEMP/release.keystore" >> "$GITHUB_ENV"
+
+      - name: Create the Android project
+        run: npm run android
+
+      - name: Build debug APK
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+          cp app/build/outputs/apk/debug/app-debug.apk "../tube-tonic-${VERSION_NAME}-debug.apk"
+
+      - name: Build signed release AAB
+        if: steps.rel.outputs.release == 'true'
+        working-directory: android
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          ./gradlew bundleRelease --no-daemon
+          cp app/build/outputs/bundle/release/app-release.aab "../tube-tonic-${VERSION_NAME}-${VERSION_CODE}.aab"
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: tube-tonic-debug-apk
+          path: tube-tonic-*-debug.apk
+          retention-days: 30
+
+      - name: Upload release AAB
+        if: steps.rel.outputs.release == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: tube-tonic-release-aab
+          path: tube-tonic-*.aab
+          retention-days: 90
+
+      - name: Remove the keystore
+        if: always()
+        run: rm -f "$RUNNER_TEMP/release.keystore"
