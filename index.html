@@ -43,7 +43,12 @@
   #bottom { bottom: 0; padding-bottom: calc(var(--safe-b) + 16px); justify-content: center; gap: 14px; }
   .title { text-align: center; line-height: 1.15; }
   .title b { display: block; font-size: 22px; font-weight: 900; }
-  .title span { font-size: 13px; color: var(--ink-dim); font-weight: 700; font-variant-numeric: tabular-nums; }
+  .title span { font-size: 14px; color: var(--ink-dim); font-weight: 700; font-variant-numeric: tabular-nums; }
+  .title span em { font-style: normal; font-weight: 900; transition: color 0.2s; }
+  .title span em.s3 { color: #23a07f; }
+  .title span em.s2 { color: #e09a1a; }
+  .title span em.s1 { color: #e0504c; }
+  .title span .stars-mini { margin-left: 6px; letter-spacing: 1px; color: #f5b82e; }
   .round {
     width: 48px; height: 48px; border-radius: 16px; border: 1px solid var(--edge);
     background: var(--card); color: var(--ink); font-size: 22px; font-weight: 800; cursor: pointer;
@@ -124,7 +129,7 @@
 
 <div class="bar" id="top">
   <button class="round" id="homeBtn" aria-label="Home">⌂</button>
-  <div class="title"><b id="levelLabel">Level 1</b><span id="movesLabel">0 moves</span></div>
+  <div class="title"><b id="levelLabel">Level 1</b><span id="movesLabel">Move 0 · Par 0</span></div>
   <button class="round" id="settingsBtn" aria-label="Settings">⚙</button>
 </div>
 <div class="bar" id="bottom">
@@ -773,7 +778,9 @@ function current() { return overlays.find(o => $(o).classList.contains('show')) 
 function updateUi() {
   if (!L) return;
   $('levelLabel').textContent = `Level ${L.n}`;
-  $('movesLabel').textContent = `${moves} move${moves === 1 ? '' : 's'}`;
+  // Move count vs par, coloured by the stars you'd get if you finished now.
+  const st = starsFor(moves, L.par);
+  $('movesLabel').innerHTML = `Move <em class="s${st}">${moves}</em> · Par ${L.par}<span class="stars-mini">${'★'.repeat(st)}</span>`;
   $('undoBadge').textContent = undos;
   $('undoBtn').disabled = !history.length || undos <= 0;
 }
